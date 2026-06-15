@@ -23,7 +23,6 @@ Para dar contexto às funcionalidades, o sistema opera com base em quatro concei
 * **Comparar preços em tempo real:** O sistema exibirá e ordenará as ofertas de um jogo em diversas lojas digitais, destacando automaticamente a opção mais barata.
 * **Redirecionar para compra:** O usuário será levado diretamente para a página do produto na loja escolhida com apenas um clique.
 * **Filtrar por plataforma:** O usuário poderá isolar as ofertas apenas para os consoles ou sistemas que possui (ex: mostrar apenas preços para PlayStation ou apenas para PC).
-* **Analisar histórico de preços:** O usuário visualizará um gráfico com o histórico de preços daquele título, permitindo avaliar se a oferta atual realmente vale a pena.
 * **Padronizar moedas:** O sistema exibirá todas as ofertas convertidas e padronizadas em Reais (BRL), facilitando a comparação imediata.
 
 ### 4. Fluxos
