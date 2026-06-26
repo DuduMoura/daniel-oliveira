@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from datetime import date
 
 # Caminho do arquivo SQLite (na raiz do projeto)
 DB_PATH = Path(__file__).resolve().parent.parent / "dados.db"
@@ -15,6 +16,33 @@ def get_connection() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     return conn
 
+def inserir_ou_obter_jogo(conn, nome: str, capa_url: str | None = None) -> int:
+    """Insere um jogo (se não existir) e retorna o id."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM jogos WHERE nome = ?", (nome,))
+    row = cursor.fetchone()
+    if row:
+        return row["id"]
+    cursor.execute(
+        "INSERT INTO jogos (nome, capa_url) VALUES (?, ?)",
+        (nome, capa_url),
+    )
+    conn.commit()
+    return cursor.lastrowid
+
+
+def inserir_preco(conn, id_jogo: int, loja: str, preco: float, url_compra: str | None = None) -> int:
+    """Insere um novo registro de preço (histórico) para o jogo/loja."""
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO precos (id_jogo, loja, preco, data_captura, url_compra)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (id_jogo, loja, preco, date.today().isoformat(), url_compra),
+    )
+    conn.commit()
+    return cursor.lastrowid
 
 def init_db() -> None:
     """
