@@ -1,3 +1,15 @@
+"""
+src/scrapers.py
+
+Rotinas de extração de preços de jogos nas 4 lojas de PC suportadas:
+Steam, GOG, Epic Games e Nuuvem.
+
+Conforme Spec 01 (docs/specs/01-scraping-pc.md):
+- Sem Playwright/Selenium - apenas `requests` + `BeautifulSoup4`.
+- Saída sempre normalizada no formato:
+  {"jogo": str, "loja": str, "preco": float, "url_compra": str}
+"""
+
 import logging
 import re
 from typing import Any, Dict, List, Optional
@@ -26,7 +38,16 @@ def _normalizar(jogo: str, loja: str, preco: float, url_compra: Optional[str]) -
         "url_compra": url_compra,
     }
 
+
+# ---------------------------------------------------------------------------
+# STEAM
+# ---------------------------------------------------------------------------
 def scrape_steam(termo: str) -> List[Dict[str, Any]]:
+    """
+    Busca jogos na Steam via API pública de busca da loja.
+    Endpoint: store.steampowered.com/api/storesearch
+    """
+
     url = "https://store.steampowered.com/api/storesearch/"
     params = {"term": termo, "l": "portuguese", "cc": "BR"}
     resultados: List[Dict[str, Any]] = []
@@ -110,7 +131,17 @@ def scrape_gog(termo: str) -> List[Dict[str, Any]]:
 
     return resultados
 
+
+# ---------------------------------------------------------------------------
+# EPIC GAMES
+# ---------------------------------------------------------------------------
 def scrape_epic(termo: str) -> List[Dict[str, Any]]:
+
+    """
+    Busca jogos na Epic Games Store via GraphQL (searchStoreQuery).
+    Conforme Spec 01: sem ferramentas de browser; em caso de bloqueio/erro
+    a função degrada graciosamente e retorna lista vazia (fallback simples).
+    """
     url = "https://store.epicgames.com/graphql"
     headers_epic = {
         **HEADERS,
@@ -149,7 +180,21 @@ def scrape_epic(termo: str) -> List[Dict[str, Any]]:
         pass
     return resultados
 
+
+# ---------------------------------------------------------------------------
+# NUUVEM
+# ---------------------------------------------------------------------------
 def scrape_nuuvem(termo: str) -> List[Dict[str, Any]]:
+
+    """
+    Busca jogos na Nuuvem via parsing direto do HTML da página de busca
+    (não há API pública documentada, conforme Spec 01).
+
+    Atenção: por ser parsing de HTML, os seletores CSS abaixo são os mais
+    estáveis observados no layout atual do site, mas podem precisar de
+    ajuste caso a Nuuvem mude o front-end.
+    """
+
     locale = "br-pt"
     termo_url = termo.replace(" ", "%20")
     url = f"https://www.nuuvem.com/{locale}/catalog/page/1/search/{termo_url}"
@@ -173,6 +218,11 @@ def scrape_nuuvem(termo: str) -> List[Dict[str, Any]]:
     return resultados
 
 def _extrair_preco_brl(texto: str) -> Optional[float]:
+    """
+    Converte texto de preço no formato brasileiro (ex.: 'R$ 79,90')
+    para float (79.90). Retorna None se não conseguir extrair um número.
+    """
+
     matches = re.findall(r"R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})", texto)
     if not matches: return None
     valor = matches[-1]

@@ -1,10 +1,16 @@
 from datetime import date
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.database import get_connection, init_db
 from src.models import Jogo, Oferta, HistoricoPreco, PrecosResponse
+
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI(
     title="GamePrice Comparator API",
@@ -19,10 +25,29 @@ def startup_event():
     init_db()
 
 
-@app.get("/")
-def root():
+# --------------------------------------------------------------------------
+# Frontend estático
+# --------------------------------------------------------------------------
+
+# Serve os assets estáticos (app.js, e futuramente css/imagens) em /static/*
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    """Serve a interface (index.html) na raiz do site."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/api/status")
+def status():
+    """Health-check simples da API (antiga rota '/')."""
     return {"status": "ok", "service": "GamePrice Comparator API"}
 
+
+# --------------------------------------------------------------------------
+# Endpoints da API
+# --------------------------------------------------------------------------
 
 @app.get("/api/search", response_model=List[Jogo])
 def search_jogo(q: str = Query(..., min_length=1, description="Nome do jogo a buscar")):
