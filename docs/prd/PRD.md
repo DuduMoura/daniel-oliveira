@@ -10,12 +10,20 @@
 * **Consumidores casuais e presenteadores:** Pessoas (como pais ou amigos) que não conhecem a fundo o ecossistema de lojas de games, mas precisam de uma interface simples e confiável que lhes diga onde comprar um título específico pelo menor valor.
 
 ### 3. Funcionalidades
+
+**Conceitos Principais do Produto (Entidades de Negócio):**
+Para dar contexto às funcionalidades, o sistema opera com base em quatro conceitos fundamentais:
+* **Jogo:** O título buscado (ex: nome, capa, descrição).
+* **Loja:** A plataforma de venda (ex: Steam, Nuuvem, PS Store).
+* **Oferta:** O preço de um jogo em uma loja em um exato momento, indicando se é o melhor valor.
+* **Histórico de Preços:** A linha do tempo que registra as variações das ofertas ao longo dos meses.
+
+**Ações do Sistema:**
 * **Buscar jogos:** O usuário poderá pesquisar títulos específicos na plataforma para encontrar rapidamente suas ofertas.
-* **Comparar preços em tempo real:** O sistema exibirá e ordenará os valores de um jogo em diversas lojas digitais, destacando automaticamente a opção mais barata.
+* **Comparar preços em tempo real:** O sistema exibirá e ordenará as ofertas de um jogo em diversas lojas digitais, destacando automaticamente a opção mais barata.
 * **Redirecionar para compra:** O usuário será levado diretamente para a página do produto na loja escolhida com apenas um clique.
 * **Filtrar por plataforma:** O usuário poderá isolar as ofertas apenas para os consoles ou sistemas que possui (ex: mostrar apenas preços para PlayStation ou apenas para PC).
-* **Analisar histórico de preços:** O usuário visualizará um gráfico com a variação do valor do jogo ao longo dos últimos meses, permitindo avaliar se a oferta atual realmente vale a pena.
-* **Padronizar moedas:** O sistema exibirá todos os preços convertidos e padronizados em Reais (BRL), facilitando a comparação imediata.
+* **Padronizar moedas:** O sistema exibirá todas as ofertas convertidas e padronizadas em Reais (BRL), facilitando a comparação imediata.
 
 ### 4. Fluxos
 
