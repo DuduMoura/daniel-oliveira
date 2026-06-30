@@ -71,66 +71,96 @@ def scrape_steam(termo: str) -> List[Dict[str, Any]]:
         pass
     return resultados
 
-# ---------------------------------------------------------------------------
-# GOG - DEFINITIVA (Padrão 'like:' sem filtros restritivos)
-# ---------------------------------------------------------------------------
+
 def scrape_gog(termo: str) -> List[Dict[str, Any]]:
     """
-    Busca jogos na GOG usando o prefixo 'like:' sem parâmetros de região.
-    Isso evita o bug de filtro da API que zerava resultados.
-    """
-    url = "https://catalog.gog.com/v1/catalog"
-    
-    # O diagnóstico provou que 'like:' é o prefixo necessário e que
-    # os parâmetros de região/moeda quebram a consulta.
-    params = {
-        "query": f"like:{termo}",
-        "limit": 10
-    }
+    Busca jogos na GOG em duas etapas:
 
-    # Cabeçalhos padrão, mantendo Referer para boa conduta
+    1. catalog.gog.com com 'query=like:{termo}' (SEM countryCode/currencyCode/
+       locale -- confirmado que esses params zeram os resultados quando
+       combinados com 'like:') para localizar o(s) produto(s) e seus IDs.
+    2. api.gog.com/products/{id}/prices?countryCode=BR para obter o preço
+       REAL publicado pela GOG em BRL para cada produto encontrado -- nada
+       de conversão por câmbio, é o valor exato que aparece na loja.
+    """
+    url_busca = "https://catalog.gog.com/v1/catalog"
+    params_busca = {"query": f"like:{termo}", "limit": 10}
     headers = {
         **HEADERS,
         "Referer": "https://www.gog.com/",
-        "Accept": "application/json"
+        "Accept": "application/json",
     }
 
     resultados: List[Dict[str, Any]] = []
-    
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=TIMEOUT)
-        resp.raise_for_status()
-        
-        dados = resp.json()
-        produtos = dados.get("products", [])
 
-        if not produtos:
-            return []
+    try:
+        resp = requests.get(url_busca, headers=headers, params=params_busca, timeout=TIMEOUT)
+        resp.raise_for_status()
+        produtos = resp.json().get("products", [])
 
         for produto in produtos:
             nome = produto.get("title")
-            price_info = produto.get("price", {})
-            
-            # Nota: Como não passamos BRL, o 'amount' pode vir em USD ou EUR.
-            # A API da GOG retorna o valor como string centesimal.
-            amount = price_info.get("finalMoney", {}).get("amount")
-            
-            if not nome or amount is None:
-                continue
-                
-            # Conversão básica de centavos para unidade (ex: 1999 -> 19.99)
-            preco = float(amount) / 100
-
+            id_produto = produto.get("id")
             slug = produto.get("slug")
-            link = f"https://www.gog.com/game/{slug}" if slug else None
 
+            if not nome or not id_produto:
+                continue
+
+            preco = _obter_preco_brl_gog(id_produto)
+            if preco is None:
+                # Sem preço confiável em BRL para esse produto -- melhor
+                # omitir a oferta do que salvar um valor aproximado/errado.
+                continue
+
+            link = f"https://www.gog.com/game/{slug}" if slug else None
             resultados.append(_normalizar(nome.strip(), "GOG", preco, link))
 
     except Exception as e:
-        logger.warning(f"[GOG] Falha ao processar resposta: {e}")
+        logger.warning(f"[GOG] Falha ao buscar catálogo: {e}")
 
     return resultados
 
+
+def _obter_preco_brl_gog(id_produto: str) -> Optional[float]:
+    """
+    Consulta o preço real em BRL publicado pela GOG para um produto
+    específico. Retorna None se a chamada falhar ou não houver BRL
+    disponível para esse produto (alguns IDs não têm preço listado).
+
+    Formato de resposta confirmado em produção (2026-06-29):
+        {"_embedded": {"prices": [
+            {"currency": {"code": "BRL"}, "finalPrice": "7985 BRL", ...},
+            {"currency": {"code": "USD"}, "finalPrice": "1635 USD", ...}
+        ]}}
+
+    Atenção: aqui o valor vem como STRING DE CENTAVOS + sufixo de moeda
+    (ex.: "7985 BRL" = R$ 79,85) -- formato diferente do catalog.gog.com,
+    que usa string decimal (ex.: "79.85"). Não confundir os dois.
+    """
+    try:
+        resp = requests.get(
+            f"https://api.gog.com/products/{id_produto}/prices",
+            params={"countryCode": "BR"},
+            headers={"Accept": "application/json"},
+            timeout=TIMEOUT,
+        )
+        resp.raise_for_status()
+
+        precos = resp.json().get("_embedded", {}).get("prices", [])
+        preco_brl = next(
+            (p for p in precos if p.get("currency", {}).get("code") == "BRL"),
+            None,
+        )
+
+        if not preco_brl or "finalPrice" not in preco_brl:
+            return None
+
+        valor_centavos_str = preco_brl["finalPrice"].split(" ")[0]
+        return float(valor_centavos_str) / 100
+
+    except Exception as e:
+        logger.warning(f"[GOG] Falha ao obter preço BRL do produto {id_produto}: {e}")
+        return None
 
 # ---------------------------------------------------------------------------
 # EPIC GAMES
