@@ -1,4 +1,10 @@
-# Byte-compiled / optimized / DLL files
+# Ambientes Virtuais
+venv/
+env/
+
+# Arquivos de cache do Python
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+
+# (Opcional) Vamos manter o dados.db fora do gitignore 
+# para que o professor consiga ver os dados que você já salvou!
